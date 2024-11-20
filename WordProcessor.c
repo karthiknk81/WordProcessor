@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
@@ -12,68 +11,52 @@ typedef struct {
     int count;
 } WordIndex;
 
-void parseParagraph(const char *paragraph, WordIndex wordIndices[], int *wordCount) {
-    char word[MAX_WORD_LENGTH];
-    int wordPos = 0;
-    int paragraphPos = 0;
-    int index = 0;
-    *wordCount = 0;
-
-    while (paragraph[paragraphPos] != '\0') {
-        if (isalnum(paragraph[paragraphPos])) {
-            word[wordPos++] = tolower(paragraph[paragraphPos]);
-        } else if (wordPos > 0) {
-            word[wordPos] = '\0';
-            int found = 0;
-            for (int i = 0; i < *wordCount; i++) {
-                if (strcmp(wordIndices[i].word, word) == 0) {
-                    wordIndices[i].positions[wordIndices[i].count++] = index;
-                    found = 1;
-                    break;
-                }
-            }
-            if (!found) {
-                strcpy(wordIndices[*wordCount].word, word);
-                wordIndices[*wordCount].positions[0] = index;
-                wordIndices[*wordCount].count = 1;
-                (*wordCount)++;
-            }
-            wordPos = 0;
-            index++;
+void addWordToIndex(const char *word, int index, WordIndex wordIndices[], int *wordCount) {
+    for (int i = 0; i < *wordCount; i++) {
+        if (strcmp(wordIndices[i].word, word) == 0) {
+            wordIndices[i].positions[wordIndices[i].count++] = index;
+            return;
         }
-        paragraphPos++;
     }
+    strcpy(wordIndices[*wordCount].word, word);
+    wordIndices[*wordCount].positions[0] = index;
+    wordIndices[*wordCount].count = 1;
+    (*wordCount)++;
+}
 
-    if (wordPos > 0) {
-        word[wordPos] = '\0';
-        int found = 0;
-        for (int i = 0; i < *wordCount; i++) {
-            if (strcmp(wordIndices[i].word, word) == 0) {
-                wordIndices[i].positions[wordIndices[i].count++] = index;
-                found = 1;
-                break;
-            }
-        }
-        if (!found) {
-            strcpy(wordIndices[*wordCount].word, word);
-            wordIndices[*wordCount].positions[0] = index;
-            wordIndices[*wordCount].count = 1;
-            (*wordCount)++;
-        }
+void processWord(char *word, int *wordPos, int *index, WordIndex wordIndices[], int *wordCount) {
+    if (*wordPos > 0) {
+        word[*wordPos] = '\0';
+        addWordToIndex(word, *index, wordIndices, wordCount);
+        (*index)++;
+        *wordPos = 0;
     }
 }
 
-void listWordPositions(const char *word, WordIndex wordIndices[], int wordCount) {
+void parseParagraph(const char *paragraph, WordIndex wordIndices[], int *wordCount) {
+    char word[MAX_WORD_LENGTH];
+    int wordPos = 0;
+    int index = 0;
+    *wordCount = 0;
 
+    for (int i = 0; paragraph[i] != '\0'; i++) {
+        if (isalnum(paragraph[i])) {
+            word[wordPos++] = tolower(paragraph[i]);
+        } else {
+            processWord(word, &wordPos, &index, wordIndices, wordCount);
+        }
+    }
+    processWord(word, &wordPos, &index, wordIndices, wordCount);
+}
+
+void listWordPositions(const char *word, WordIndex wordIndices[], int wordCount) {
     for (int i = 0; i < wordCount; i++) {
         if (strcmp(wordIndices[i].word, word) == 0) {
-
-            printf("\n Word: %s", wordIndices[i].word);
-            printf("\n Positions: ");
+            printf("Word: %s\nPositions: ", wordIndices[i].word);
             for (int j = 0; j < wordIndices[i].count; j++) {
-                printf("[%d] ", wordIndices[i].positions[j]);
+                printf("%d ", wordIndices[i].positions[j]);
             }
-            printf("\n Total occurence(s): %d \n",wordIndices[i].count);
+            printf("\nTotal occurrences: %d\n", wordIndices[i].count);
             return;
         }
     }
@@ -88,7 +71,7 @@ int main() {
 
     printf("Enter a paragraph: ");
     fgets(paragraph, sizeof(paragraph), stdin);
-    paragraph[strcspn(paragraph, "\n")] = '\0'; // Remove newline character
+    paragraph[strcspn(paragraph, "\n")] = '\0';
 
     parseParagraph(paragraph, wordIndices, &wordCount);
 
